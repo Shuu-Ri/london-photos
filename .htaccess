@@ -1,0 +1,47 @@
+# Don't server *.inc.php files
+<FilesMatch ".inc.php$">
+Order Allow,Deny
+Deny from all
+</FilesMatch>
+
+# Turn off MultiViews because otherwise we keep matching photos.css instead of
+# the rules below
+Options -MultiViews
+
+# Old-style version:
+# Rewrite URLs so
+# photos/1 -> photos.php
+<ifModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /soi-5/
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^photos/([0-9]+)$ photos.php?id=$1 [L]
+  # Requests without a number go to the first item
+  RewriteRule ^photos$ photos/1 [R,L]
+  # Likewise for requests for the php file
+  RewriteCond %{QUERY_STRING} =""
+  RewriteRule ^photos\.php$ photos/1 [R,L]
+</ifModule>
+
+# AJAX version:
+# Implement per-file MultiViews, i.e. map get-photo to get-photos.php
+<ifModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /soi-5/
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^get-photo$ get-photo.php [L]
+  RewriteRule ^ajax-photos$ ajax-photos.html [L]
+</ifModule>
+
+# HTML5 version:
+# Pretty much identical to the old-style version
+<ifModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /soi-5/
+  RewriteRule ^html5-photos/([0-9]+)$ html5-photos.html [L]
+  # Requests without a number go to the first item
+  RewriteCond %{THE_REQUEST} ![0-9]\ HTTP
+  RewriteRule ^html5-photos(\.html)?$ html5-photos/1 [R,L]
+</ifModule>

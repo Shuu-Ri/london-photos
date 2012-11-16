@@ -1,0 +1,146 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>London photos (AJAX version)</title>
+    <link rel="stylesheet" href="photos.css" type="text/css">
+    <script>
+// This is a *very* simple example of an AJAX-approach to the photo application.
+// It should not be used for a real website. If you were to use this for a real
+// website, at a minimum you should:
+//
+// * Provide a loading icon while the image is being requested
+// * Cache the results and not request them over and over again
+//
+// Not to mention:
+// 
+// * Use filenames or descriptive tokens or at least some hash value instead of
+//   sequential numeric IDs to identify photos
+// * Prefetching the next result and its image etc. etc.
+// * Better yet, pre-fetching a batch of say 10 filenames and captions
+
+function getPhoto(id) {
+  var req = new XMLHttpRequest();
+  req.open("GET", "get-photo?id=" + id, true);
+
+  // Event listeners
+  req.onreadystatechange = function() {
+    if (req.readyState != 4)
+      return;
+ 
+    // 200 is for HTTP request, 0 is for local files (this allows us to test
+    // without running a local webserver)
+    if (req.status == 200 || req.status == 0) {
+      try {
+        var response = JSON.parse(req.responseText);
+        if (response) {
+          showPhoto(JSON.parse(req.responseText));
+        } else {
+          showError("Couldn't find photo");
+        }
+      } catch (e) {
+        if (e instanceof SyntaxError) {
+          showError("Couldn't find photo");
+        } else {
+          throw e;
+        }
+      }
+    } else {
+      showError("Couldn't load photo");
+    }
+  };
+
+  // Send away
+  try {
+    req.send();
+  } catch (e) {
+    console.debug(e);
+    showErroshowError("Couldn't load photo");
+    return;
+  }
+
+  // Add timeout
+  window.setTimeout(
+    function() {
+      if (req.readyState != 4) {
+        req.abort();
+        showError("Timed out contacting server");
+      }
+    },
+    10000
+  );
+}
+
+function showPhoto(photo) {
+  // Toggle which parts of the page are showing
+  toggleView('content');
+
+  // Update navigation links
+  var prevBlock = document.querySelector("div.prev");
+  var prevLink = prevBlock.parentNode;
+  updateNavLink(prevBlock, prevLink, photo.first, photo.id - 1);
+  var nextBlock = document.querySelector("div.next");
+  var nextLink = nextBlock.parentNode;
+  updateNavLink(nextBlock, nextLink, photo.last, photo.id + 1);
+
+  // Update image
+  var photoImage = document.querySelector("#photo img");
+  photoImage.src = photo.filename;
+  photoImage.alt = photo.caption;
+  var photoCaption = document.querySelector("#photo figcaption");
+  photoCaption.textContent = photo.caption;
+}
+
+function showError(message) {
+  // Set error message
+  var errorBlock = document.querySelector("div.error");
+  errorBlock.textContent = message;
+
+  // Show it
+  toggleView('error');
+}
+
+function toggleView(view) {
+  var errorParts = document.querySelectorAll("div.error");
+  for (var i = 0; i < errorParts.length; i++) {
+    errorParts[i].style.display = (view === 'error') ? 'block' : 'none';
+  }
+  var contentParts = document.querySelectorAll("p.introduction, div.content");
+  for (var i = 0; i < contentParts.length; i++) {
+    contentParts[i].style.display = (view === 'error') ? 'none' : 'block';
+  }
+}
+
+function updateNavLink(div, link, selected, id) {
+  if (selected) {
+    div.classList.add("disabled");
+    link.removeAttribute("href");
+  } else {
+    div.classList.remove("disabled");
+    link.setAttribute("href", "javascript:getPhoto(" + id + ")");
+  }
+}
+  </script>
+  </head>
+  <body onload="getPhoto(1)">
+    <h1>London photos</h1>
+    <p class="introduction">
+      These are some photos I took last week in London. And, actually, this 
+      introduction is just here to make the page longer so you can see what 
+      happens when you scroll the page.
+    </p>
+    <div class="content">
+      <nav class="photo-nav">
+        <a><div class="prev disabled">&larr; Prev</div></a><a>
+           <div class="next disabled">Next &rarr;</div></a>
+      </nav>
+      <figure id="photo">
+        <img src="" alt="">
+        <figcaption></figcaption>
+      </figure>
+    </div>
+    <div class="error">
+      Image not found.
+    </div>
+  </body>
+</html>
